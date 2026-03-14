@@ -1,82 +1,147 @@
 # Auto-MuJoCo-Compiler
 
-A blazingly fast, fully automated Photo-to-Sim or Object-to-Sim compiler that turns any `.glb` or `.obj` 3D model into a highly accurate, physically-simulated package ready for MuJoCo and Reinforcement Learning (RL) agents.
+**Drop any 3D object file → get a fully simulated physics scene in minutes.**
 
-## Why this exists
+No manual XML. No manual mass entry. No manual collision setup.  
+Upload a `.glb` or `.obj`, run a Colab notebook, open an interactive sim.
 
-Setting up arbitrary 3D objects in a physics simulator like MuJoCo is a notorious bottleneck. Researchers typically have to:
-1. Manually compute sizes and coordinates
-2. Run convex hull decomposition algorithms (V-HACD or CoACD) manually
-3. Guess the mass, friction, and restitution coefficients based on the object
-4. Hand-write complicated MuJoCo XML files
-
-The **Auto-MuJoCo-Compiler** automates this entirely into a seamless, zero-friction pipeline. 
-
-### How it works: 
-1. The pipeline creates 4 isometric renders of the object using `matplotlib` (zero complex OpenGL/pyrender setup).
-2. It queries **Gemini 2.5 Flash** (a state-of-the-art VLM) to estimate the object's mass, typical material, friction, and restitution **purely based on its visual appearance**. 
-3. It performs convex collision hull decomposition via `coacd`.
-4. It dynamically generates an interactive simulation `.xml` file and zips everything into a ready-to-run package!
+![demo](assets/demo.gif)
 
 ---
 
-## 🚀 Quick Start Guide
+## What It Does
 
-### 1. The Physics Pipeline (Creating the Object Package)
-We have provided a fully self-contained Jupyter Notebook (`Auto_MuJoCo_Compiler.ipynb`) that handles everything.
-
-**Requirements**:
-You can run this notebook locally, or simply drop it into Google Colab (Recommended for zero setup). 
-
-1. Open `Auto_MuJoCo_Compiler.ipynb` in [Google Colab](https://colab.research.google.com/) or Jupyter.
-2. Run **Step 1** to install the required Python packages (`trimesh`, `coacd`, `mujoco`, `google-genai`). The notebook kernel will automatically restart after this.
-3. Run **Step 2** to import dependencies.
-4. When prompted, enter your **Gemini API Key**. Get one for free at [Google AI Studio](https://aistudio.google.com/). 
-5. Run the remaining cells. You will be prompted to upload your `.glb` or `.obj` file.
-6. The pipeline will render the object, guess the physics via VLM, calculate collision geometry, and **download a ready-to-use ZIP file!**
-
-### 2. Verify with the Viewer Script (`viewer.py`)
-Once you have the generated ZIP file containing your new `.obj` visuals, collision hulls, and `physics_properties.json`, you can immediately verify how it looks and behaves in an interactive MuJoCo window!
-
-**Requirements for viewer:**
-- Ensure you have python installed.
-- `pip install mujoco numpy`
-
-**Usage:**
-1. Extract the ZIP file downloaded from the pipeline into a new folder.
-2. Place the `viewer.py` script from this repository into the same folder as the extracted files (`visual.obj`, `hull_*.obj`, `physics_properties.json`).
-3. Run the script:
-   ```bash
-   python viewer.py
-   ```
-
-### 🎮 Viewer Controls
-
-The viewer script uses best practices (`xfrc_applied` torque controls) instead of hacking `qvel`, meaning the object behaves physically properly!
-
-**Keyboard (Hold for continuous rotation):**
-- **W / S** : Pitch forward / back
-- **A / D** : Roll left / right
-- **Q / E** : Yaw left / right
-- **SPACE** : Freeze the object in mid-air (zero velocity/force)
-- **G** : Release to gravity from the current position
-- **1 / 2** : Drop low / high while retaining rotation
-- **3** : Drop with an extreme spin
-- **+ / -** : Increase/Decrease torque strength
-
-**Mouse (Built-in MuJoCo Controls):**
-- **Left drag**: Orbit camera
-- **Right drag**: Pan camera
-- **Scroll**: Zoom in/out
-- **Ctrl + Left drag**: Apply mouse FORCE to object
-- **Ctrl + Right drag**: Apply mouse TORQUE to object
+1. **Loads** your 3D mesh (`.glb` / `.obj`)
+2. **Renders** 4 views and sends them to **Gemini 2.5 Flash**
+3. **Gemini estimates** — object name, material, mass (kg), friction, restitution — just from looking at it
+4. **CoACD** generates accurate convex collision hulls
+5. **MuJoCo** compiles a physics scene — object drops, bounces, settles
+6. **Download** the output zip → run the interactive local viewer
 
 ---
 
-## Use Cases
+## Quickstart
 
-* **Robotics Sim-to-Real**: Easily ingest scanned meshes (e.g. from SAM3D) into simulation for robotic grasping and manipulation tasks.
-* **RL Practitioners**: Auto-generate thousands of diverse objects with semantically accurate weights and frictions without lifting a finger.
+### Step 1 — Run on Colab
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/monish705/Auto-MuJoCo-Compiler/blob/master/physics_pipeline.ipynb)
+
+1. Click the badge above
+2. Go to **Runtime → Change runtime type → T4 GPU**
+3. Enter your Gemini API key when prompted (free key at [aistudio.google.com](https://aistudio.google.com))
+4. **Runtime → Run all**
+5. Upload your `.glb` or `.obj` when the upload box appears
+6. Wait ~2 minutes → download `output.zip`
+
+> ⚠️ **When Step 1 says "Your session crashed" — that is expected.**  
+> It is a forced kernel restart so packages load correctly.  
+> Colab will automatically continue from Step 2.
+
+### Step 2 — Run Locally
+
+```bash
+pip install mujoco==3.2.7 trimesh==4.5.3 numpy
+```
+
+Extract your `output.zip`, put `viewer.py` in the same folder, then:
+
+```bash
+cd path/to/extracted/output
+python viewer.py
+```
+
+---
+
+## Viewer Controls
+
+| Key | Action |
+|---|---|
+| Hold `W / S` or `↑ / ↓` | Pitch forward / back |
+| Hold `A / D` or `← / →` | Roll left / right |
+| Hold `Q / E` | Yaw left / right |
+| `SPACE` | Freeze in place |
+| `G` | Release to gravity |
+| `1` / `2` | Drop from low / high height |
+| `3` | Drop with spin |
+| `+` / `-` | Torque strength |
+
+**Mouse (MuJoCo built-in):**
+- Left drag — orbit camera
+- Scroll — zoom
+- Double-click object → `Ctrl + Right drag` — apply torque directly with mouse
+
+---
+
+## Example Output
+
+```json
+{
+  "object_name": "Rocket Engine",
+  "material": "metal",
+  "mass_kg": 10.0,
+  "friction": 0.5,
+  "restitution": 0.3,
+  "reasoning": "Metal construction typical of aerospace components"
+}
+```
+
+---
+
+## Requirements
+
+| Tool | Version |
+|---|---|
+| Python | 3.10+ |
+| mujoco | 3.2.7 |
+| trimesh | 4.5.3 |
+| numpy | any |
+| Gemini API key | free at aistudio.google.com |
+
+Colab handles all other dependencies automatically.
+
+---
+
+## How It Works
+
+```
+Upload GLB / OBJ
+      ↓
+trimesh — load geometry (exact coordinates, zero reconstruction)
+      ↓
+matplotlib — render 4 views (no OpenGL needed)
+      ↓
+Gemini 2.5 Flash — infer mass, friction, restitution from appearance
+      ↓
+CoACD — convex decomposition → collision hulls
+      ↓
+MuJoCo from_xml_string — compile scene programmatically
+      ↓
+Simulate → GIF + downloadable scene
+```
+
+**Key design principle:** coordinates are never manually typed or reconstructed.  
+Everything comes directly from the mesh geometry.
+
+---
+
+## Roadmap
+
+- [x] Single object GLB → MuJoCo simulation
+- [x] Gemini VLM automatic physics property estimation  
+- [x] Interactive local viewer with full rotation control
+- [ ] Multi-object scenes (multiple GLBs in one sim)
+- [ ] Gaussian Splat scene input (`.ply` → SuGaR → CoACD → MuJoCo)
+- [ ] Full indoor scene from InteriorGS dataset
+- [ ] Photo/video → 3DGS → physics simulation
+
+---
+
+## Why
+
+Most robotics and simulation workflows require manually setting up collision geometry, mass, and friction for every object. This pipeline automates that entirely — a developer with no physics simulation experience can go from a downloaded 3D model to a running physics sim in under 5 minutes.
+
+---
 
 ## License
+
 MIT
