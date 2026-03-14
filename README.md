@@ -1,4 +1,4 @@
-# Auto-MuJoCo-Compiler
+# Mesh2MuJoCo
 
 > **Drop any 3D object → fully simulated physics scene in under 5 minutes.**  
 > No manual XML. No manual mass entry. No manual collision setup.
@@ -48,7 +48,15 @@
 pip install mujoco==3.2.7 trimesh==4.5.3 numpy
 ```
 
-Extract your `output.zip`, download `viewer.py` from this repo, put it in the same folder:
+**Try the pre-included example!**  
+We've included a ready-to-use compiled object (`example_package`) in this repository so you can test it instantly without running the pipeline:
+```bash
+cd example_package
+python viewer.py
+```
+
+**Or run your own output:**  
+Extract your downloaded `output.zip`, download `viewer.py` from this repo, put it in the same folder:
 
 ```bash
 cd path/to/extracted/output

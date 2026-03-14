@@ -1,0 +1,8 @@
+{
+  "object_name": "ceramic vase with plants",
+  "material": "ceramic",
+  "mass_kg": 1.5,
+  "friction": 0.7,
+  "restitution": 0.3,
+  "reasoning": "The object appears to be a ceramic vase with plant elements, suggesting a moderate mass and typical ceramic properties for friction and restitution."
+}
